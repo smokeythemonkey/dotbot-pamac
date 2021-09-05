@@ -4,8 +4,8 @@ from enum import Enum
 
 class PkgStatus(Enum):
     # Display these status names
-    UP_TO_DATE = 'up to date'
-    INSTALLED= 'Installed'
+    UP_TO_DATE = 'Your system is up-to-date.'
+    INSTALLED= 'Transaction successfully finished.'
     UPDATED = 'Updated'
     NOT_FOUND = 'Not Found'
     ERROR = "Error"
@@ -19,6 +19,7 @@ class Pamac(dotbot.Plugin):
         self._context = context
         self._strings = {}
         
+        # TODO: check what std out is given for pamac
         self._strings[PkgStatus.ERROR] = 'aborting'
         self._strings[PkgStatus.NOT_FOUND] = 'Could not find all packages'
         self._strings[PkgStatus.UPDATED] = 'Net Upgrade Size:'
@@ -61,3 +62,38 @@ class Pamac(dotbot.Plugin):
             log('{} {}'.format(amount, status.value))
 
         return success
+
+    def _install(self, pkg):
+        
+        
+        cmd ='LANG=en_US pamac --needed --no-confirm install {}'.format(pkg)
+        
+        self._log.info("Installing \"{}\". Please wait...".format(pkg))
+        
+        time.sleep(2)
+        
+        proc=subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        out=proc.stdout.read()
+        proc.stdout.close()
+        
+        for item in self._strings.keys():
+            if out.decode("utf-8").find(self._strings[item]) >= 0:
+                return item
+            
+        self._log.warning("Could not determine what happened with package {}".format(pkg))
+        return PkgStatus.NOT_SURE
+    
+    def _update(self, pkg):
+        
+        cmd = 'LANG=en_US pamac checkupdates'
+        self._log.info ("Checking for updates")
+        
+        time.sleep(2)
+        
+        proc=subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        out=proc.stdout.read()
+        proc.stdout.close()
+        
+        for item in self._strings.keys():
+            if out.decode("utf-8").find(self._strings[item]) >= 0:
+                return item
