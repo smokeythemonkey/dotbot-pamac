@@ -1,4 +1,5 @@
-Dotbot yay Plugin
+WIP
+Dotbot Pamac Plugin
 
 For use with dotbot, this plugin allows one to easily install or upgrade a list of pamac packages.
 
@@ -15,7 +16,7 @@ The original author also recommends having your yay list in a separate file sinc
 
 If you use the default install script provided by dotbot, using the plugin will look like this:
 
-./dotbot/bin/dotbot -p dotbot-yay/yay.py -c packages.conf.yaml
+./dotbot/bin/dotbot -p dotbot-pamac/pamac.py -c packages.conf.yaml
 
 Using the install script provided by this repo, using the plugin will look like this:
 
