@@ -7,8 +7,8 @@ class PkgStatus(Enum):
     UP_TO_DATE = 'Your system is up-to-date.'
     INSTALLED= 'Transaction successfully finished.'
     UPDATED = 'Updated'
-    NOT_FOUND = 'Not Found'
-    ERROR = "Error"
+    NOT_FOUND = ''
+    ERROR = 'Error'
     NOT_SURE = 'Could not determine'
     
 class Pamac(dotbot.Plugin):
@@ -19,7 +19,6 @@ class Pamac(dotbot.Plugin):
         self._context = context
         self._strings = {}
         
-        # TODO: check what std out is given for pamac
         self._strings[PkgStatus.ERROR] = 'aborting'
         self._strings[PkgStatus.NOT_FOUND] = 'Could not find all packages'
         self._strings[PkgStatus.UPDATED] = 'Net Upgrade Size:'
@@ -35,65 +34,69 @@ class Pamac(dotbot.Plugin):
         return self._process(data)
     
     def _process(self, packages):
-        defaults = self._context.defaults().get('pamac', {})
+        # defaults = self._context.defaults().get('pamac', {})
         results= {}
         successful=[PkgStatus.UP_TO_DATE, PkgStatus.UPDATED, PkgStatus.INSTALLED]
         
-        for pkg in packages:
-            if isinstance(pkg, dict):
-                self._log.error('Incorrect format')
-            elif isinstance(pkg, list):
-                pass
-            else:
-                pass
-            result = self._install(pkg)
-            results[pkg] = results.get(result, 0) + 1
-            if result not in successful:
-                self._log.error(f"Could not install package '{pkg}'")
+        if self._update() is True:
         
-        if all([result in successful for result in results.keys()]):
-            self._log.info('\nAll packages installed successfully')
-            success = True
-        else:
-            success = False
+            for pkg in packages:
+                if isinstance(pkg, dict):
+                    self._log.error('Incorrect format')
+                elif isinstance(pkg, list):
+                    pass
+                else:
+                    pass
+                result = self._install(pkg)
+                results[pkg] = results.get(result, 0) + 1
+                if result not in successful:
+                    self._log.error(f"Could not install package '{pkg}'")
             
-        for status, amount in results.items():
-            log = self._log.info if status in successful else self._log.error
-            log('{} {}'.format(amount, status.value))
+            if all([result in successful for result in results.keys()]):
+                self._log.info('\nAll packages installed successfully')
+                success = True
+            else:
+                success = False
+                
+            for status, amount in results.items():
+                log = self._log.info if status in successful else self._log.error
+                log('{} {}'.format(amount, status.value))
 
-        return success
+            return success
+        else:
+            self._log.warning('Could not determine what happened with system update')
+        return PkgStatus.NOT_SURE
 
     def _install(self, pkg):
+        """ """
         
-        
-        cmd ='LANG=en_US pamac --needed --no-confirm install {}'.format(pkg)
-        
-        self._log.info("Installing \"{}\". Please wait...".format(pkg))
-        
-        time.sleep(2)
-        
-        proc=subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-        out=proc.stdout.read()
-        proc.stdout.close()
+        cmd ='LANG=en_US pamac --needed --no-confirm install {}'.format(pkg)        
+        out = self._run_command(cmd, 'Installing \"{}\". Please wait...'.format(pkg))        
         
         for item in self._strings.keys():
-            if out.decode("utf-8").find(self._strings[item]) >= 0:
+            if out.decode('utf-8').find(self._strings[item]) >= 0:
                 return item
             
-        self._log.warning("Could not determine what happened with package {}".format(pkg))
+        self._log.warning('Could not determine what happened with package {}'.format(pkg))
         return PkgStatus.NOT_SURE
     
-    def _update(self, pkg):
+    def _update(self):
         
-        cmd = 'LANG=en_US pamac checkupdates'
-        self._log.info ("Checking for updates")
+        out = self._run_command('LANG=en_US pamac checkupdates', 'Checking for updates')
+        if out.decode('utf-8').find(self._strings[PkgStatus.UP_TO_DATE]) <=0:
+            out = self._run_command('LANG=en_US pamac update', 'Updating System, please wait...')
+            if out.decode('utf-8').find(self._strings[PkgStatus.UPDATED]) >= 0:
+                return True
+            else:
+                return False
+            
+    def _run_command(self, cmd, log_msg):
         
+        self._log.info (log_msg)        
         time.sleep(2)
         
         proc=subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
         out=proc.stdout.read()
         proc.stdout.close()
         
-        for item in self._strings.keys():
-            if out.decode("utf-8").find(self._strings[item]) >= 0:
-                return item
+        return out

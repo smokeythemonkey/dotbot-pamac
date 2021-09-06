@@ -1,11 +1,9 @@
-WIP
-Dotbot Pamac Plugin
+Dotbot pamac Plugin
+
 
 For use with dotbot, this plugin allows one to easily install or upgrade a list of pamac packages.
 
-This plugin is inspired by dotbot-yay.
-
-dotbot-yay was itself heavily inspired by the apt-get plugin.
+This plugin is inspired by dotbot-yay. Dotbot-yay was itself heavily inspired by the apt-get plugin.
 Usage
 
 It's easiest to track this plugin in your dotfiles repo:
